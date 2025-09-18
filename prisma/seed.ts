@@ -4,7 +4,7 @@ import {
   TaskPriority,
   ProjectRole,
 } from '../src/generated/prisma';
-
+//password: 'Password@123',
 const prisma = new PrismaClient();
 
 async function main() {
