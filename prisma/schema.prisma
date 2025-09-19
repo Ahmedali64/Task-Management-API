@@ -64,6 +64,7 @@ model User {
   username    String   @unique
   firstName   String
   lastName    String
+  password    String
   avatar      String?
   bio         String?
   isActive    Boolean  @default(true)
@@ -78,6 +79,7 @@ model User {
   comments         Comment[]
   attachments      Attachment[]
   refreshTokens    RefreshToken[] 
+  
   @@index([isActive])
   @@map("users")
 }
