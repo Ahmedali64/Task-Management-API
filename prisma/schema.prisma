@@ -53,6 +53,7 @@ enum ProjectRole {
 // 18-task -> can has more than one attachment[]
 // 19-task -> can has one user who made it 
 // 20-task -> can has one optional assigned user
+// 21-user -> can has more than one refreshToken
 
 // ----------------------------- Tables --------------------------------
 
@@ -76,7 +77,7 @@ model User {
   createdTasks     Task[]          @relation("TaskCreator")
   comments         Comment[]
   attachments      Attachment[]
-
+  refreshTokens    RefreshToken[] 
   @@index([isActive])
   @@map("users")
 }
@@ -190,4 +191,16 @@ model Attachment {
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("attachments")
+}
+
+// RefreshToken - for multi device login
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@map("refresh_tokens")
 }
