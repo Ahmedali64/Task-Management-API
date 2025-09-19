@@ -198,7 +198,7 @@ model Attachment {
 // RefreshToken - for multi device login
 model RefreshToken {
   id        String   @id @default(uuid())
-  token     String   @unique
+  token     String   @db.Text
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   createdAt DateTime @default(now())
