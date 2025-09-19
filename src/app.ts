@@ -10,6 +10,7 @@ import {
   errorHandler,
   notFoundHandler,
 } from './middleware/errorHandler.middleware';
+import authRoutes from './routes/auth.routes';
 
 dotenv.config();
 
@@ -86,6 +87,9 @@ app.listen(PORT, () => {
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
 });
+
+// API Routes
+app.use('/api/auth', authRoutes);
 
 // If there is no matching route just go to this one and do not use '*' app will crash
 // cause he will think that this is just a string not a wildcard
