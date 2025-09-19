@@ -237,14 +237,18 @@ export const refreshAccessToken = async (
 
 // Logout user
 export const logoutUser = async (refreshToken: string): Promise<void> => {
-  try {
-    // Remove refresh token from database
-    await prisma.refreshToken.deleteMany({
-      where: { token: refreshToken },
-    });
-  } catch (error) {
-    console.error('Error during logout:', error);
+  const refreshTokenExists = await prisma.refreshToken.findFirst({
+    where: { token: refreshToken },
+  });
+
+  if (!refreshTokenExists) {
+    throw new ApiError("Refresh token desn't exist", 404);
   }
+
+  // Remove refresh token from database
+  await prisma.refreshToken.deleteMany({
+    where: { token: refreshToken },
+  });
 };
 
 // Get user profile by ID

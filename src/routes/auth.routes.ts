@@ -23,7 +23,7 @@ router.post('/login', validateBody(loginSchema), login);
 router.post('/refresh', validateBody(refreshTokenSchema), refreshToken);
 
 // Logout (can work with or without valid token)
-router.post('/logout', logout);
+router.delete('/logout', logout);
 
 // Protected routes (authentication required)
 router.get('/me', authMiddleware, getMe);
