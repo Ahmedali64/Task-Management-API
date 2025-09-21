@@ -53,7 +53,7 @@ enum ProjectRole {
 // 18-task -> can has more than one attachment[]
 // 19-task -> can has one user who made it 
 // 20-task -> can has one optional assigned user
-// 21-user -> can has more than one refreshToken
+// 21-user -> can has more than one RefreshToken/EmailVerificationToken/PasswordResetToken
 
 // ----------------------------- Tables --------------------------------
 
@@ -68,6 +68,8 @@ model User {
   avatar      String?
   bio         String?
   isActive    Boolean  @default(true)
+  emailVerified Boolean @default(false)
+  emailVerifiedAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -79,6 +81,8 @@ model User {
   comments         Comment[]
   attachments      Attachment[]
   refreshTokens    RefreshToken[] 
+  emailVerificationTokens EmailVerificationToken[] @relation("EmailVerification")
+  passwordResetTokens      PasswordResetToken[]     @relation("PasswordReset")
   
   @@index([isActive])
   @@map("users")
@@ -205,4 +209,29 @@ model RefreshToken {
   expiresAt DateTime
 
   @@map("refresh_tokens")
+}
+
+// Email verification tokens
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  token     String   @db.Text
+  email     String   
+  userId    String
+  user      User     @relation("EmailVerification", fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("email_verification_tokens")
+}
+
+// Password reset tokens  
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @db.Text
+  userId    String
+  user      User     @relation("PasswordReset", fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@map("password_reset_tokens")
 }
