@@ -80,6 +80,7 @@ export const getMe = expressAsyncHandler(
         success: false,
         error: { message: 'User not authenticated' },
       });
+      return;
     }
     // Here is a weard error =>
     /*
@@ -90,7 +91,7 @@ export const getMe = expressAsyncHandler(
     But ts look at the code and see that AuthenticatedRequest has a user and this user might be undefined and throw a warn or err
     So we use ! to tell her trust me this is not undefined 
     */
-    const userProfile = await getUserProfile(req.user!.id);
+    const userProfile = await getUserProfile(req.user.id);
     successResponse(res, userProfile, 'Profile retrieved successfully');
   }
 );
