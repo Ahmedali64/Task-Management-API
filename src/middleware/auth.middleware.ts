@@ -7,7 +7,14 @@ import {
 import prisma from '../config/database';
 import { unauthorizedResponse } from '../utils/response.util';
 
-export interface AuthenticatedRequest extends Request {
+// Request<Params = core.ParamsDictionary, ResBody = any, ReqBody = any, ReqQuery = qs.ParsedQs>
+
+export interface AuthenticatedRequest<
+  P = Record<string, string>, // Route params
+  ResBody = any, // Response body
+  ReqBody = any, // Request body
+  ReqQuery = Record<string, any>, // Query params
+> extends Request<P, ResBody, ReqBody, ReqQuery> {
   user?: {
     id: string;
     email: string;
@@ -17,7 +24,6 @@ export interface AuthenticatedRequest extends Request {
     isActive: boolean;
   };
 }
-
 // JWT Authentication Middleware
 export const authMiddleware = async (
   req: AuthenticatedRequest,
