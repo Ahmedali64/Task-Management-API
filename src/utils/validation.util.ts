@@ -120,6 +120,119 @@ export const resetPasswordSchema = z
     path: ['confirmPassword'],
   });
 
+// Create project schema
+export const createProjectSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Project name is required')
+    .max(100, 'Project name must be less than 100 characters')
+    .trim(),
+  description: z
+    .string()
+    .max(1000, 'Description must be less than 1000 characters')
+    .trim()
+    .optional()
+    .nullable(),
+  color: z
+    .string()
+    .regex(
+      /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/,
+      'Color must be a valid hex color'
+    )
+    .optional()
+    .nullable(),
+});
+
+// Update project schema
+export const updateProjectSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Project name is required')
+    .max(100, 'Project name must be less than 100 characters')
+    .trim()
+    .optional(),
+  description: z
+    .string()
+    .max(1000, 'Description must be less than 1000 characters')
+    .trim()
+    .optional()
+    .nullable(),
+  color: z
+    .string()
+    .regex(
+      /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/,
+      'Color must be a valid hex color'
+    )
+    .optional()
+    .nullable(),
+  isArchived: z.boolean().optional(),
+});
+
+// Add project member schema { members -> ProjectMember[] }
+export const addProjectMemberSchema = z.object({
+  userId: z.uuid('Invalid user ID'),
+  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'VIEWER']).default('MEMBER'),
+});
+
+// Update member role schema
+export const updateMemberRoleSchema = z.object({
+  role: z.enum(['ADMIN', 'MEMBER', 'VIEWER']), // Can't change to OWNER via this endpoint
+});
+
+// Create task schema
+export const createTaskSchema = z.object({
+  title: z
+    .string()
+    .min(1, 'Task title is required')
+    .max(200, 'Task title must be less than 200 characters')
+    .trim(),
+  description: z
+    .string()
+    .max(2000, 'Description must be less than 2000 characters')
+    .trim()
+    .optional()
+    .nullable(),
+  status: z
+    .enum(['TODO', 'IN_PROGRESS', 'DONE', 'IN_REVIEW', 'CANCELLED'])
+    .default('TODO'),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
+  dueDate: z.coerce.date().optional().nullable(),
+  assigneeId: z.uuid('Invalid assignee ID').optional().nullable(),
+});
+
+// Update task schema
+export const updateTaskSchema = z.object({
+  title: z
+    .string()
+    .min(1, 'Task title is required')
+    .max(200, 'Task title must be less than 200 characters')
+    .trim()
+    .optional(),
+  description: z
+    .string()
+    .max(2000, 'Description must be less than 2000 characters')
+    .trim()
+    .optional()
+    .nullable(),
+  status: z
+    .enum(['TODO', 'IN_PROGRESS', 'DONE', 'IN_REVIEW', 'CANCELLED'])
+    .optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  dueDate: z.coerce.date().optional().nullable(),
+  assigneeId: z.uuid('Invalid assignee ID').optional().nullable(),
+});
+
+// Task filters schema
+export const taskFiltersSchema = z.object({
+  status: z
+    .enum(['TODO', 'IN_PROGRESS', 'DONE', 'IN_REVIEW', 'CANCELLED'])
+    .optional(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  assigneeId: z.uuid().optional(),
+  dueDate: z.string().optional(),
+  search: z.string().trim().optional(),
+});
+
 // Types for TypeScript (Same as DTOS in Nest)
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -130,3 +243,10 @@ export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+export type AddProjectMemberInput = z.infer<typeof addProjectMemberSchema>;
+export type UpdateMemberRoleInput = z.infer<typeof updateMemberRoleSchema>;
+export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
+export type TaskFiltersInput = z.infer<typeof taskFiltersSchema>;
