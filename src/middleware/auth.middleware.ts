@@ -11,9 +11,9 @@ import { unauthorizedResponse } from '../utils/response.util';
 
 export interface AuthenticatedRequest<
   P = Record<string, string>, // Route params
-  ResBody = any, // Response body
+  ResBody = any, // Response body type
   ReqBody = any, // Request body
-  ReqQuery = Record<string, any>, // Query params
+  ReqQuery = any, // Query params
 > extends Request<P, ResBody, ReqBody, ReqQuery> {
   user?: {
     id: string;
