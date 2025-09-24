@@ -33,7 +33,7 @@ export const validateRequest = (
         default:
           dataToValidate = req.body;
       }
-
+      // We passed dataToValidate as a [Object: null prototype]
       const validatedData = schema.parse(dataToValidate);
 
       switch (target) {
@@ -42,14 +42,15 @@ export const validateRequest = (
           break;
         case 'params':
           // Ts expect req.params to be ParamsDictionary which is a Record<string, string>
-          req.params = validatedData as Record<string, string>;
+          Object.assign(req.params, validatedData);
           break;
         case 'query':
-          // Same here expect req.query to be ParsedQs = Record<string, any>
-          req.query = validatedData as Record<string, any>;
+          // req.query = validatedData as Record<string, any>;
+          // This will not work casue req.query is read-only or protected
+          // The Object.assign() approach worked because it merges properties into the existing object instead of replacing it entirely.
+          Object.assign(req.query, validatedData);
           break;
       }
-
       next();
     } catch (error) {
       if (error instanceof ZodError) {

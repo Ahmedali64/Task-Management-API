@@ -220,6 +220,7 @@ export const updateTaskSchema = z.object({
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
   dueDate: z.coerce.date().optional().nullable(),
   assigneeId: z.uuid('Invalid assignee ID').optional().nullable(),
+  completedAt: z.coerce.date().optional().nullable(),
 });
 
 // Task filters schema
@@ -231,6 +232,8 @@ export const taskFiltersSchema = z.object({
   assigneeId: z.uuid().optional(),
   dueDate: z.string().optional(),
   search: z.string().trim().optional(),
+  page: z.string().trim().optional(),
+  limit: z.string().trim().optional(),
 });
 
 // Types for TypeScript (Same as DTOS in Nest)

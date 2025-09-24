@@ -7,19 +7,19 @@ export interface PaginationOptions {
   sortOrder?: 'asc' | 'desc';
 }
 
-export interface CreatePaginationOptions {
-  page: string;
-  limit: string;
+export interface CreatePaginationOptionsInterface {
+  page?: string;
+  limit?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
 
 // Create pagination options with defaults
 export const createPaginationOptions = (
-  query: CreatePaginationOptions
+  query: CreatePaginationOptionsInterface
 ): PaginationOptions => {
-  const page = Math.max(1, parseInt(query.page) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 10)); // Max 100 items
+  const page = Math.max(1, parseInt(query.page || '1') || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit || '10') || 10)); // Max 100 items
   const sortBy = query.sortBy || 'createdAt';
   const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
 

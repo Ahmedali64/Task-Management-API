@@ -12,21 +12,29 @@ import {
 import {
   validateBody,
   validateParams,
+  validateQuery,
 } from '../middleware/validation.middleware';
 import { authMiddleware } from '../middleware/auth.middleware';
 import {
   requireProjectAccess,
   requireProjectManagement,
   requireProjectOwnership,
+  requireTaskEdit,
 } from '../middleware/permissions.middleware';
 import {
   createProjectSchema,
   updateProjectSchema,
   addProjectMemberSchema,
   updateMemberRoleSchema,
+  taskFiltersSchema,
+  createTaskSchema,
 } from '../utils/validation.util';
 import { idParamSchema } from '../middleware/validation.middleware';
 import z from 'zod';
+import {
+  createNewTask,
+  getTasksByProject,
+} from '../controllers/task.controller';
 
 const router = Router();
 
@@ -91,4 +99,24 @@ router.delete(
   removeMember
 );
 
+// Project task management
+const projectIdSchema = z.object({
+  projectId: z.string().uuid('Invalid project ID'),
+});
+
+router.get(
+  '/:projectId/tasks',
+  validateParams(projectIdSchema),
+  validateQuery(taskFiltersSchema),
+  requireProjectAccess(),
+  getTasksByProject
+);
+
+router.post(
+  '/:projectId/tasks',
+  validateParams(projectIdSchema),
+  validateBody(createTaskSchema),
+  requireTaskEdit,
+  createNewTask
+);
 export default router;

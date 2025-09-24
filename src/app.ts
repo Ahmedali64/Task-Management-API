@@ -13,6 +13,7 @@ import {
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import projectRoutes from './routes/project.routes';
+import taskRoutes from './routes/task.routes';
 
 dotenv.config();
 
@@ -94,7 +95,7 @@ app.listen(PORT, () => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
-
+app.use('/api/tasks', taskRoutes);
 // If there is no matching route just go to this one and do not use '*' app will crash
 // cause he will think that this is just a string not a wildcard
 app.use(notFoundHandler);
