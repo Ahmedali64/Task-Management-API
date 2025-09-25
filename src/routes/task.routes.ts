@@ -17,6 +17,10 @@ import {
   updateTaskById,
 } from '../controllers/task.controller';
 import { requireTaskAccess } from '../middleware/permissions.middleware';
+import {
+  createNewComment,
+  getComments,
+} from '../controllers/comment.controller';
 
 const router = Router();
 
@@ -43,4 +47,8 @@ router.delete(
 
 router.put('/:id/assign', assignTask);
 router.put('/:id/unassign', unassignTask);
+
+// Routes for task comments
+router.get('/:taskId/comments', getComments);
+router.post('/:taskId/comments', createNewComment);
 export default router;
