@@ -142,7 +142,21 @@ export const deleteProjectById = expressAsyncHandler(
 // Add member to project
 export const addMember = expressAsyncHandler(
   async (req: AuthenticatedRequestWithProjectMemberBody, res: Response) => {
-    const member = await addProjectMember(req.params.id, req.body);
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: { message: 'User not authenticated' },
+      });
+      return;
+    }
+    const addedBy = {
+      id: req.user.id,
+      email: req.user.email,
+      username: req.user.username,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+    };
+    const member = await addProjectMember(req.params.id, req.body, addedBy);
 
     createdResponse(res, member, 'Member added to project successfully');
   }

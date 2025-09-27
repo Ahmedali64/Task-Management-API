@@ -2,6 +2,16 @@ import prisma from '../config/database';
 import { Prisma } from '../generated/prisma';
 import { ApiError } from '../middleware/errorHandler.middleware';
 import { calculateSkip, PaginationOptions } from '../utils/pagination.util';
+import {
+  emitTaskCreated,
+  emitTaskUpdate,
+  emitTaskDeleted,
+} from '../sockets/taskEvents';
+import {
+  cacheTaskDetails,
+  getCachedTaskDetails,
+  invalidateTaskCaches,
+} from './cache.service';
 
 interface TaskFiltersInput {
   status?: 'TODO' | 'IN_PROGRESS' | 'DONE' | 'IN_REVIEW' | 'CANCELLED';
@@ -272,6 +282,11 @@ export const getProjectTasks = async (
 // Get task by ID
 export const getTaskById = async (taskId: string): Promise<TaskResponse> => {
   try {
+    const cachedTask =
+      await getCachedTaskDetails<Promise<TaskResponse>>(taskId);
+    if (cachedTask) {
+      return cachedTask;
+    }
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -312,7 +327,8 @@ export const getTaskById = async (taskId: string): Promise<TaskResponse> => {
     if (!task) {
       throw new ApiError('Task not found', 404);
     }
-
+    // Cache the result
+    await cacheTaskDetails(taskId, task);
     return task;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -388,6 +404,7 @@ export const createTask = async (
         createdBy: {
           select: {
             id: true,
+            email: true,
             username: true,
             firstName: true,
             lastName: true,
@@ -403,6 +420,25 @@ export const createTask = async (
       },
     });
 
+    emitTaskCreated({
+      task: {
+        id: task.id,
+        title: task.title,
+        status: task.status,
+        priority: task.priority,
+        assigneeId: task.assigneeId,
+      },
+      projectId,
+      createdBy: {
+        id: userId,
+        email: task.createdBy.email,
+        username: task.createdBy.username,
+        firstName: task.createdBy.firstName,
+        lastName: task.createdBy.lastName,
+      },
+      timestamp: new Date(),
+    });
+    await invalidateTaskCaches(task.id, projectId);
     return task;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -443,7 +479,11 @@ export const updateTask = async (
         throw new ApiError('Assignee not found or inactive', 400);
       }
     }
-
+    // For realTime comparason
+    const currentTask = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: { project: true },
+    });
     const task = await prisma.task.update({
       where: { id: taskId },
       data: {
@@ -470,6 +510,7 @@ export const updateTask = async (
         createdBy: {
           select: {
             id: true,
+            email: true,
             username: true,
             firstName: true,
             lastName: true,
@@ -485,6 +526,37 @@ export const updateTask = async (
       },
     });
 
+    const changes = [];
+    if (taskData.status && currentTask?.status !== taskData.status) {
+      changes.push({
+        field: 'status',
+        oldValue: currentTask?.status || null,
+        newValue: taskData.status,
+      });
+    }
+    if (taskData.priority && currentTask?.priority !== taskData.priority) {
+      changes.push({
+        field: 'priority',
+        oldValue: currentTask?.priority || null,
+        newValue: taskData.priority,
+      });
+    }
+
+    emitTaskUpdate({
+      taskId,
+      projectId: task.project.id,
+      updatedBy: {
+        id: task.createdBy.id,
+        email: task.createdBy.email,
+        username: task.createdBy.username,
+        firstName: task.createdBy.firstName,
+        lastName: task.createdBy.lastName,
+      },
+      changes,
+      timestamp: new Date(),
+    });
+
+    await invalidateTaskCaches(taskId, task.project.id);
     return task;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -497,9 +569,34 @@ export const updateTask = async (
 // Delete task
 export const deleteTask = async (taskId: string): Promise<void> => {
   try {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        project: true,
+        createdBy: true,
+      },
+    });
+    if (!task) {
+      return;
+    }
+    await invalidateTaskCaches(taskId, task.project.id);
     await prisma.task.delete({
       where: { id: taskId },
     });
+    if (task) {
+      emitTaskDeleted({
+        taskId,
+        projectId: task.project.id,
+        deletedBy: {
+          id: task.createdBy.id,
+          email: task.createdBy.email,
+          username: task.createdBy.username,
+          firstName: task.createdBy.firstName,
+          lastName: task.createdBy.lastName,
+        },
+        timestamp: new Date(),
+      });
+    }
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2025') {

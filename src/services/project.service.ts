@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { Prisma } from '../generated/prisma';
 import { ApiError } from '../middleware/errorHandler.middleware';
+import { emitMemberAdded, EventUser } from '../sockets/taskEvents';
 import { calculateSkip, PaginationOptions } from '../utils/pagination.util';
 import {
   AddProjectMemberInput,
@@ -8,6 +9,13 @@ import {
   UpdateMemberRoleInput,
   UpdateProjectInput,
 } from '../utils/validation.util';
+import {
+  cacheUserProject,
+  cacheUserProjects,
+  getCachedUserProjects,
+  invalidateProjectCaches,
+  invalidateUserCaches,
+} from './cache.service';
 
 // Project response interface
 interface ProjectResponse {
@@ -63,6 +71,14 @@ export const getUserProjects = async (
   options: PaginationOptions
 ): Promise<{ projects: ProjectResponse[]; total: number }> => {
   try {
+    const cachedResult = await getCachedUserProjects<{
+      projects: ProjectResponse[];
+      total: number;
+    }>(userId);
+    if (cachedResult) {
+      console.log(`Projects served from cache for user: ${userId}`);
+      return cachedResult;
+    }
     const skip = calculateSkip(options.page, options.limit);
 
     // Where con for projects
@@ -126,6 +142,9 @@ export const getUserProjects = async (
       prisma.project.count({ where: whereClause }),
     ]);
 
+    // Cache the result for 15 minutes
+    await cacheUserProjects(userId, { projects, total });
+    console.log(`Projects cached for user: ${userId}`);
     return { projects, total };
   } catch {
     throw new ApiError('Failed to fetch projects', 500);
@@ -138,6 +157,12 @@ export const getProjectById = async (
   userId: string
 ): Promise<ProjectResponse> => {
   try {
+    const cachedResult =
+      await getCachedUserProjects<Promise<ProjectResponse>>(userId);
+    if (cachedResult) {
+      console.log(`Projects served from cache for user: ${userId}`);
+      return cachedResult;
+    }
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -191,7 +216,7 @@ export const getProjectById = async (
     if (!hasAccess) {
       throw new ApiError('You do not have access to this project', 403);
     }
-
+    await cacheUserProject(userId, project);
     return project;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -247,6 +272,8 @@ export const createProject = async (
       },
     });
 
+    // Ivalidate any saved cashed data saved by getUserProjects
+    await invalidateUserCaches(userId);
     return project;
   } catch {
     throw new ApiError('Failed to create project', 500);
@@ -300,6 +327,12 @@ export const updateProject = async (
       },
     });
 
+    // Invalidate caches for project owner and all members
+    await Promise.all([
+      invalidateUserCaches(project.ownerId),
+      ...project.members.map((member) => invalidateUserCaches(member.user.id)),
+    ]);
+
     return project;
   } catch {
     throw new ApiError('Failed to update project', 500);
@@ -310,10 +343,29 @@ export const updateProject = async (
 // We did not check here cause we have a middleware that will make sure that owner only can access this route
 export const deleteProject = async (projectId: string): Promise<void> => {
   try {
+    // Get project with members before deletion
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        members: {
+          select: { user: { select: { id: true } } },
+        },
+      },
+    });
     // Delete project (cascade will handle related data)
     await prisma.project.delete({
       where: { id: projectId },
     });
+
+    if (project) {
+      await Promise.all([
+        invalidateUserCaches(project.ownerId),
+        ...project.members.map((member) =>
+          invalidateUserCaches(member.user.id)
+        ),
+        invalidateProjectCaches(projectId),
+      ]);
+    }
   } catch {
     throw new ApiError('Failed to delete project', 500);
   }
@@ -322,7 +374,8 @@ export const deleteProject = async (projectId: string): Promise<void> => {
 // Add member to project
 export const addProjectMember = async (
   projectId: string,
-  memberData: AddProjectMemberInput
+  memberData: AddProjectMemberInput,
+  addedBy: EventUser
 ): Promise<ProjectMemberResponse> => {
   try {
     const { userId, role } = memberData;
@@ -360,6 +413,7 @@ export const addProjectMember = async (
         user: {
           select: {
             id: true,
+            email: true,
             username: true,
             firstName: true,
             lastName: true,
@@ -369,6 +423,26 @@ export const addProjectMember = async (
       },
     });
 
+    emitMemberAdded({
+      projectId,
+      newMember: {
+        id: newMember.id,
+        role: newMember.role,
+        user: {
+          id: newMember.user.id,
+          email: newMember.user.email,
+          username: newMember.user.username,
+          firstName: newMember.user.firstName,
+          lastName: newMember.user.lastName,
+        },
+      },
+      addedBy,
+      timestamp: new Date(),
+    });
+    await Promise.all([
+      invalidateUserCaches(userId),
+      addedBy ? invalidateUserCaches(addedBy.id) : Promise.resolve(),
+    ]);
     return newMember;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -406,6 +480,9 @@ export const updateMemberRole = async (
       },
     });
 
+    // Invalidate cache for the affected user
+    await invalidateUserCaches(userId);
+
     return updatedMember;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -431,6 +508,9 @@ export const removeProjectMember = async (
         },
       },
     });
+
+    // Invalidate cache for the removed user
+    await invalidateUserCaches(userId);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2025') {
