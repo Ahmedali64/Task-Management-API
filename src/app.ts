@@ -15,12 +15,19 @@ import userRoutes from './routes/user.routes';
 import projectRoutes from './routes/project.routes';
 import taskRoutes from './routes/task.routes';
 import commentRoutes from './routes/comment.routes';
+import { createServer } from 'http';
+import { initializeSocket, setSocketInstance } from './sockets/index';
+import { connectRedis } from './config/redis';
+import { connectDatabase } from './config/database';
 
 dotenv.config();
 
 const app: Application = express();
-const PORT = process.env.PORT || 3000;
+const server = createServer(app);
+const io = initializeSocket(server);
+setSocketInstance(io);
 
+const PORT = process.env.PORT || '3000';
 // Middlewares
 app.use(
   helmet({
@@ -86,12 +93,6 @@ async function testDatabaseConnection() {
 const limiter = rateLimit({ windowMs: 1 * 60 * 1000, max: 5 }); // 5 req per min
 app.use(limiter);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`Health check: http://localhost:${PORT}/api/health`);
-});
-
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -103,4 +104,22 @@ app.use('/api/comments', commentRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-export default app;
+const startServer = async (): Promise<void> => {
+  try {
+    await connectDatabase();
+    await connectRedis();
+
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`Health check: http://localhost:${PORT}/api/health`);
+      console.log(`API Base URL: http://localhost:${PORT}/api`);
+      console.log(`WebSocket server ready`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+void startServer();

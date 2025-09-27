@@ -1,7 +1,13 @@
 import prisma from '../config/database';
 import { ApiError } from '../middleware/errorHandler.middleware';
 import { calculateSkip, PaginationOptions } from '../utils/pagination.util';
-
+import {
+  emitNewComment,
+  emitCommentUpdate,
+  emitCommentDelete,
+} from '../sockets/taskEvents';
+import { getTaskById } from './task.service';
+import { getUserProfile } from './auth.service';
 interface CommentResponse {
   id: string;
   content: string;
@@ -116,6 +122,21 @@ export const createComment = async (
       },
     });
 
+    emitNewComment({
+      commentId: comment.id,
+      taskId,
+      projectId: task.project.id,
+      author: {
+        id: comment.user.id,
+        username: comment.user.username,
+        firstName: comment.user.firstName,
+        lastName: comment.user.lastName,
+        avatar: comment.user.avatar,
+      },
+      content: comment.content,
+      timestamp: comment.createdAt,
+    });
+
     return comment;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -163,7 +184,21 @@ export const updateComment = async (
         },
       },
     });
-
+    const task = await getTaskById(comment.taskId);
+    emitCommentUpdate({
+      commentId: comment.id,
+      taskId: comment.taskId,
+      projectId: task.project.id,
+      author: {
+        id: comment.user.id,
+        username: comment.user.username,
+        firstName: comment.user.firstName,
+        lastName: comment.user.lastName,
+        avatar: comment.user.avatar,
+      },
+      content: comment.content,
+      timestamp: comment.updatedAt,
+    });
     return comment;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -205,9 +240,30 @@ export const deleteComment = async (
         403
       );
     }
+    const user = await getUserProfile(comment.userId);
+    const deleteCommentUser = {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    };
+
+    const deletionData = {
+      commentId: comment.id,
+      taskId: comment.taskId,
+      projectId: comment.task.project.id,
+    };
 
     await prisma.comment.delete({
       where: { id: commentId },
+    });
+
+    emitCommentDelete({
+      commentId: deletionData.commentId,
+      taskId: deletionData.taskId,
+      projectId: deletionData.projectId,
+      deletedBy: deleteCommentUser,
     });
   } catch (error) {
     if (error instanceof ApiError) {
