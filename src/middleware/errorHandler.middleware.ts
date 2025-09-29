@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { Prisma } from '../generated/prisma';
+import { Prisma } from '@prisma/client';
 
 export class ApiError extends Error {
   public statusCode: number;

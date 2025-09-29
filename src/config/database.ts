@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 
 // Prisma Clint Instance
 const prisma = new PrismaClient({

@@ -20,7 +20,7 @@ import {
   paginatedResponse,
   successResponse,
 } from '../utils/response.util';
-import { ProjectRole } from '../generated/prisma';
+import { ProjectRole } from '@prisma/client';
 
 type QueryParams = {
   page: string;

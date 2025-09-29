@@ -1,5 +1,5 @@
 import redisClient from '../config/redis';
-import { Project, Task } from '../generated/prisma';
+import { Project, Task } from '@prisma/client';
 
 // Cache key prefixes for organization
 export const CACHE_KEYS = {
