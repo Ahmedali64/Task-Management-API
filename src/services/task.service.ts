@@ -1,5 +1,5 @@
 import prisma from '../config/database';
-import { Prisma } from '../generated/prisma';
+import { Prisma } from '@prisma/client';
 import { ApiError } from '../middleware/errorHandler.middleware';
 import { calculateSkip, PaginationOptions } from '../utils/pagination.util';
 import {
