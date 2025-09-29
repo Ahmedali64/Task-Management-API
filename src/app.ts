@@ -19,7 +19,8 @@ import { createServer } from 'http';
 import { initializeSocket, setSocketInstance } from './sockets/index';
 import { connectRedis } from './config/redis';
 import { connectDatabase } from './config/database';
-
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 dotenv.config();
 
 const app: Application = express();
@@ -92,6 +93,25 @@ async function testDatabaseConnection() {
 
 const limiter = rateLimit({ windowMs: 1 * 60 * 1000, max: 5 }); // 5 req per min
 app.use(limiter);
+
+// This has to be before api routes
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'TaskFlow API Docs',
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  })
+);
+
+// Swagger JSON endpoint
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);
