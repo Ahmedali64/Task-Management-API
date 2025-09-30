@@ -40,7 +40,7 @@ A comprehensive task management REST API with real-time collaboration, team mana
 1. Clone the repository
 ```bash
 https://github.com/Ahmedali64/Task-Management-API.git
-cd taskflow-api
+cd Task-Management-API
 ```
 2. Install dependencies
 
@@ -131,4 +131,5 @@ Four permission levels:
 * **Name**: Ahmed Ali
 *  [**github**](https://github.com/Ahmedali64)
 *  [**LinkedIn**](www.linkedin.com/in/ahmed-ali-esmail)
+
 
