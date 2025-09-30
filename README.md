@@ -53,7 +53,7 @@ npm install
 cp .env.example .env
 ```
 
-4. 
+4. Run database migrations
 ```bash
 npx prisma migrate dev
 ```
@@ -131,3 +131,4 @@ Four permission levels:
 * **Name**: Ahmed Ali
 *  [**github**](https://github.com/Ahmedali64)
 *  [**LinkedIn**](www.linkedin.com/in/ahmed-ali-esmail)
+
